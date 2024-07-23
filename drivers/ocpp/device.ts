@@ -1,6 +1,25 @@
 import { Device } from 'homey'
+import { IHandlersOption } from 'ocpp-rpc/lib/client'
 
-class OCCPCharger extends Device {
+type BootNotificationPayload = {
+    status: string
+    interval: number
+    currentTime: string
+}
+
+type HeartBeatPayload = {
+    currentTime: string
+}
+
+type StatusNotificationPayload = {}
+
+export interface IOCPPCharger {
+    onBootNotification(options: IHandlersOption): Promise<BootNotificationPayload>
+    onHeartbeat(options: IHandlersOption): Promise<HeartBeatPayload>
+    onStatusNotification(options: IHandlersOption): Promise<StatusNotificationPayload>
+}
+
+class OCCPCharger extends Device implements IOCPPCharger {
 
     async onInit(): Promise<void> {
 
@@ -12,6 +31,24 @@ class OCCPCharger extends Device {
 
     async onAdded(): Promise<void> {
 
+    }
+
+    async onBootNotification(): Promise<BootNotificationPayload> {
+        return {
+            status: 'Accepted',
+            interval: 300,
+            currentTime: new Date().toISOString(),
+        }
+    }
+
+    async onHeartbeat(): Promise<HeartBeatPayload> {
+        return {
+            currentTime: new Date().toISOString(),
+        }
+    }
+
+    async onStatusNotification(): Promise<StatusNotificationPayload> {
+        return {}
     }
 }
 
