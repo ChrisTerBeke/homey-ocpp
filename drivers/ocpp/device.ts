@@ -21,7 +21,7 @@ export interface IOCPPCharger {
     onStatusNotification(options: IHandlersOption): Promise<StatusNotificationPayload>
 }
 
-const HEARTBEAT_TIMEOUT = 15000
+const HEARTBEAT_TIMEOUT = 60 * 1000
 
 class OCCPCharger extends Device implements IOCPPCharger {
 
