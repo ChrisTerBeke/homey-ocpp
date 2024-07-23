@@ -1,4 +1,5 @@
 import { Device } from 'homey'
+import { RPCClient, createRPCError } from 'ocpp-rpc'
 import { IHandlersOption } from 'ocpp-rpc/lib/client'
 
 type BootNotificationPayload = {
@@ -14,23 +15,37 @@ type HeartBeatPayload = {
 type StatusNotificationPayload = {}
 
 export interface IOCPPCharger {
+    onConnected(client: RPCClient): Promise<void>
     onBootNotification(options: IHandlersOption): Promise<BootNotificationPayload>
     onHeartbeat(options: IHandlersOption): Promise<HeartBeatPayload>
     onStatusNotification(options: IHandlersOption): Promise<StatusNotificationPayload>
 }
 
+const HEARTBEAT_TIMEOUT = 15000
+
 class OCCPCharger extends Device implements IOCPPCharger {
 
+    _client: RPCClient | undefined
+    _heartbeatTimeout: NodeJS.Timeout | undefined
+
     async onInit(): Promise<void> {
-
+        this.setUnavailable('Waiting for charging station to connect')
     }
 
-    async onUninit(): Promise<void> {
-
+    async onConnected(client: RPCClient): Promise<void> {
+        this._client = client
+        this._client.handle('BootNotification', this.onBootNotification.bind(this))
+        this._client.handle('Heartbeat', this.onHeartbeat.bind(this))
+        this._client.handle('StatusNotification', this.onStatusNotification.bind(this))
+        this._client.on('disconnect', this.onDisconnected.bind(this))
+        client.handle(() => { throw createRPCError('NotImplemented') })
     }
 
-    async onAdded(): Promise<void> {
-
+    async onDisconnected(): Promise<IHandlersOption> {
+        this._client = undefined
+        if (this._heartbeatTimeout) clearTimeout(this._heartbeatTimeout)
+        this.setUnavailable('Charging station disconnected')
+        return {}
     }
 
     async onBootNotification(): Promise<BootNotificationPayload> {
@@ -42,6 +57,9 @@ class OCCPCharger extends Device implements IOCPPCharger {
     }
 
     async onHeartbeat(): Promise<HeartBeatPayload> {
+        if (this._heartbeatTimeout) clearTimeout(this._heartbeatTimeout)
+        this._heartbeatTimeout = setTimeout(() => { this.setUnavailable('Charging station not responding') }, HEARTBEAT_TIMEOUT)
+        this.setAvailable()
         return {
             currentTime: new Date().toISOString(),
         }
