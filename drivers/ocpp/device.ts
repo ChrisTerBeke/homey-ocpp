@@ -29,7 +29,7 @@ class OCCPCharger extends Device implements IOCPPCharger {
     _heartbeatTimeout: NodeJS.Timeout | undefined
 
     async onInit(): Promise<void> {
-        this.setUnavailable('Waiting for charging station to connect')
+        setTimeout(() => { this.setUnavailable('Waiting for charging station to connect') }, 500)
     }
 
     async onConnected(client: RPCServerClient): Promise<void> {
