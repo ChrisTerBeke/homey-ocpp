@@ -7,6 +7,7 @@ import { IHandshakeInterface } from 'ocpp-rpc/lib/server-client'
 import RPCClient from 'ocpp-rpc/lib/client'
 import { IOCPPCharger } from './drivers/ocpp/device'
 
+// @ts-ignore TS80005
 const { Log } = require('homey-log')
 
 const OCPP_DRIVER = 'ocpp'
