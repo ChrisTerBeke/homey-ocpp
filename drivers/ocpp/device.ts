@@ -30,6 +30,50 @@ type HeartBeatResponse = {
     currentTime?: string
 }
 
+type AuthorizeRequest = {
+    idToken: {
+        idToken: string
+        type: string
+        additionalInfo?: [{
+            additionalIdToken: string
+            type: string
+        }]
+    },
+    certificate?: string
+    iso15118CertificateHashData?: {
+        hashAlgorithm: 'SHA256'
+        issuerNameHash: string
+        issuerKeyHash: string
+        serialNumber: string
+        responderURL: string
+    }
+}
+
+type AuthorizeResponse = {
+    idTokenInfo: {
+        status: string
+        cacheExpiryDateTime?: string
+        chargingPriority?: number
+        language1?: string
+        evseId?: number[]
+        groupIdToken?: {
+            additionalInfo: [{
+                additionalIdToken: string
+                type: string
+            }]
+            idToken: string
+            type: string
+        }
+        language2?: string
+        personalMessage?: {
+            format: string
+            language: string
+            content: string
+        }
+    },
+    certificateStatus?: string
+}
+
 export interface IOCPPCharger {
     onConnected(client: RPCServerClient): Promise<void>
 }
@@ -51,6 +95,7 @@ class OCCPCharger extends Device implements IOCPPCharger {
         // implemented methods
         this._client.handle('BootNotification', this._onBootNotification.bind(this))
         this._client.handle('Heartbeat', this._onHeartbeat.bind(this))
+        this._client.handle('Authorize', this._onAuthorize.bind(this))
 
         this._client.on('disconnect', this._onDisconnected.bind(this))
         client.handle(() => { throw createRPCError('NotImplemented') })
@@ -64,6 +109,7 @@ class OCCPCharger extends Device implements IOCPPCharger {
     }
 
     private async _onBootNotification({ params: BootNotificationRequest }: IHandlersOption): Promise<BootNotificationResponse> {
+        // TODO: check additional security?
         return {
             status: 'Accepted',
             interval: 300,
@@ -77,6 +123,15 @@ class OCCPCharger extends Device implements IOCPPCharger {
         this.setAvailable()
         return {
             currentTime: new Date().toISOString(),
+        }
+    }
+
+    private async _onAuthorize({ params: AuthorizeRequest }: IHandlersOption): Promise<AuthorizeResponse> {
+        // TODO: check `params.idToken.idToken` against RFID whitelist in app settings
+        return {
+            idTokenInfo: {
+                status: 'Accepted',
+            }
         }
     }
 }
