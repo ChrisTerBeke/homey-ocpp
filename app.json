@@ -37,7 +37,7 @@
   "drivers": [
     {
       "name": {
-        "en": "OCPP Server"
+        "en": "OCPP Charger"
       },
       "capabilities": [],
       "class": "evcharger",
@@ -47,13 +47,45 @@
       "connectivity": [
         "lan"
       ],
-      "energy": {},
+      "discovery": "alfen",
       "images": {
         "small": "/drivers/ocpp/assets/images/small.png",
         "large": "/drivers/ocpp/assets/images/large.png",
         "xlarge": "/drivers/ocpp/assets/images/xlarge.png"
       },
+      "pair": [
+        {
+          "id": "start",
+          "navigation": {
+            "next": "list_devices"
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices"
+          },
+          "options": {
+            "singular": true
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ],
       "id": "ocpp"
     }
-  ]
+  ],
+  "discovery": {
+    "alfen": {
+      "type": "mdns-sd",
+      "mdns-sd": {
+        "name": "alfen",
+        "protocol": "tcp"
+      },
+      "id": "{{txt.identity}}"
+    }
+  }
 }

@@ -1,1 +1,7 @@
-{}
+{
+    "pair": {
+        "title": "OCPP setup",
+        "subtitle": "Discover and connect your charging station",
+        "description": "Homey scans for known charging stations on the local network. If none are found, you can manually configure your charging station."
+    }
+}
