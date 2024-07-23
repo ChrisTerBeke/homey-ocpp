@@ -1,6 +1,6 @@
 import { Device } from 'homey'
-import { RPCClient, createRPCError } from 'ocpp-rpc'
-import { IHandlersOption } from 'ocpp-rpc/lib/client'
+import { createRPCError } from 'ocpp-rpc'
+import RPCServerClient, { IHandlersOption } from 'ocpp-rpc/lib/client'
 
 type BootNotificationPayload = {
     status: string
@@ -15,7 +15,7 @@ type HeartBeatPayload = {
 type StatusNotificationPayload = {}
 
 export interface IOCPPCharger {
-    onConnected(client: RPCClient): Promise<void>
+    onConnected(client: RPCServerClient): Promise<void>
     onBootNotification(options: IHandlersOption): Promise<BootNotificationPayload>
     onHeartbeat(options: IHandlersOption): Promise<HeartBeatPayload>
     onStatusNotification(options: IHandlersOption): Promise<StatusNotificationPayload>
@@ -25,14 +25,14 @@ const HEARTBEAT_TIMEOUT = 60 * 1000
 
 class OCCPCharger extends Device implements IOCPPCharger {
 
-    _client: RPCClient | undefined
+    _client: RPCServerClient | undefined
     _heartbeatTimeout: NodeJS.Timeout | undefined
 
     async onInit(): Promise<void> {
         this.setUnavailable('Waiting for charging station to connect')
     }
 
-    async onConnected(client: RPCClient): Promise<void> {
+    async onConnected(client: RPCServerClient): Promise<void> {
         this._client = client
         this._client.handle('BootNotification', this.onBootNotification.bind(this))
         this._client.handle('Heartbeat', this.onHeartbeat.bind(this))

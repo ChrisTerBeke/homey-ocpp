@@ -4,7 +4,7 @@ sourceMapSupport.install()
 import { App } from 'homey'
 import { RPCServer } from 'ocpp-rpc'
 import { IHandshakeInterface } from 'ocpp-rpc/lib/server-client'
-import RPCClient from 'ocpp-rpc/lib/client'
+import RPCServerClient from 'ocpp-rpc/lib/client'
 import { IOCPPCharger } from './drivers/ocpp/device'
 
 // @ts-ignore TS80005
@@ -35,7 +35,7 @@ class OCPPApp extends App {
         accept()
     }
 
-    private async _onClient(client: RPCClient): Promise<void> {
+    private async _onClient(client: RPCServerClient): Promise<void> {
         const device = this.homey.drivers.getDriver(OCPP_DRIVER).getDevice({ id: client.identity }) as unknown as IOCPPCharger
         if (!device) return
         device.onConnected(client)
