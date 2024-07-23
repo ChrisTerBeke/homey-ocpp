@@ -2,23 +2,36 @@ import { Device } from 'homey'
 import { createRPCError } from 'ocpp-rpc'
 import RPCServerClient, { IHandlersOption } from 'ocpp-rpc/lib/client'
 
-type BootNotificationPayload = {
-    status: string
-    interval: number
-    currentTime: string
+// spec: https://ocpp-spec.org/schemas
+
+type BootNotificationRequest = {
+    reason: 'ApplicationReset' | 'FirmwareUpdate' | 'LocalReset' | 'PowerUp' | 'RemoteReset' | 'ScheduledReset' | 'Triggered' | 'Unknown' | 'Watchdog'
+    chargingStation: {
+        model: string
+        vendorName: string
+        serialNumber?: string
+        firmwareVersion?: string
+    }
 }
 
-type HeartBeatPayload = {
-    currentTime: string
+type BootNotificationResponse = {
+    status?: 'Accepted' | 'Pending' | 'Rejected'
+    interval?: number
+    currentTime?: string
+    statusInfo?: {
+        reasonCode: string
+        additionalInfo?: string
+    }
 }
 
-type StatusNotificationPayload = {}
+type HeartBeatRequest = {}
+
+type HeartBeatResponse = {
+    currentTime?: string
+}
 
 export interface IOCPPCharger {
     onConnected(client: RPCServerClient): Promise<void>
-    onBootNotification(options: IHandlersOption): Promise<BootNotificationPayload>
-    onHeartbeat(options: IHandlersOption): Promise<HeartBeatPayload>
-    onStatusNotification(options: IHandlersOption): Promise<StatusNotificationPayload>
 }
 
 const HEARTBEAT_TIMEOUT = 60 * 1000
@@ -34,21 +47,23 @@ class OCCPCharger extends Device implements IOCPPCharger {
 
     async onConnected(client: RPCServerClient): Promise<void> {
         this._client = client
-        this._client.handle('BootNotification', this.onBootNotification.bind(this))
-        this._client.handle('Heartbeat', this.onHeartbeat.bind(this))
-        this._client.handle('StatusNotification', this.onStatusNotification.bind(this))
-        this._client.on('disconnect', this.onDisconnected.bind(this))
+
+        // implemented methods
+        this._client.handle('BootNotification', this._onBootNotification.bind(this))
+        this._client.handle('Heartbeat', this._onHeartbeat.bind(this))
+
+        this._client.on('disconnect', this._onDisconnected.bind(this))
         client.handle(() => { throw createRPCError('NotImplemented') })
     }
 
-    async onDisconnected(): Promise<IHandlersOption> {
+    private async _onDisconnected(): Promise<IHandlersOption> {
         this._client = undefined
         if (this._heartbeatTimeout) clearTimeout(this._heartbeatTimeout)
         this.setUnavailable('Charging station disconnected')
         return {}
     }
 
-    async onBootNotification(): Promise<BootNotificationPayload> {
+    private async _onBootNotification({ params: BootNotificationRequest }: IHandlersOption): Promise<BootNotificationResponse> {
         return {
             status: 'Accepted',
             interval: 300,
@@ -56,17 +71,13 @@ class OCCPCharger extends Device implements IOCPPCharger {
         }
     }
 
-    async onHeartbeat(): Promise<HeartBeatPayload> {
+    private async _onHeartbeat({ params: HeartBeatRequest }: IHandlersOption): Promise<HeartBeatResponse> {
         if (this._heartbeatTimeout) clearTimeout(this._heartbeatTimeout)
         this._heartbeatTimeout = setTimeout(() => { this.setUnavailable('Charging station not responding') }, HEARTBEAT_TIMEOUT)
         this.setAvailable()
         return {
             currentTime: new Date().toISOString(),
         }
-    }
-
-    async onStatusNotification(): Promise<StatusNotificationPayload> {
-        return {}
     }
 }
 
